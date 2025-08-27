@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+    "jsx": "preserve",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+
+    "types": ["vite/client"]   // ✅ 告诉 TS 有 import.meta.env 类型
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.vue",
+    "src/api/noteApi.js",
+    "src/api/topicApi.js",
+    "src/**/*.d.ts",
+    "env.d.ts"                 // ✅ 确保 env.d.ts 也被编译器加载
+  ],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}

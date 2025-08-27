@@ -1,0 +1,37 @@
+{
+  "Java (Spring Boot)": [
+    {
+      "name": "BlogCore",
+      "desc": "个人博客后端核心，基于 Spring Boot + MyBatis-Plus。",
+      "link": "https://github.com/maiyihe/blogcore"
+    }
+  ],
+  "C# (Rhino/Grasshopper)": [
+    {
+      "name": "GH-Geometry-Kit",
+      "desc": "Grasshopper 几何算法工具集：布尔、偏移、NFP/IFP 等。",
+      "link": "https://github.com/maiyihe/gh-geometry-kit"
+    }
+  ],
+  "Python (AI / Research)": [
+    {
+      "name": "HouseGAN-Lab",
+      "desc": "住宅平面图生成实验，比较 GAN / Diffusion / GNN 模型。",
+      "link": "https://github.com/maiyihe/housegan-lab"
+    }
+  ],
+    "Python11 (AI / Research)": [
+    {
+      "name": "HouseGAN-Lab",
+      "desc": "住宅平面图生成实验，比较 GAN / Diffusion / GNN 模型。",
+      "link": "https://github.com/maiyihe/housegan-lab"
+    }
+  ],
+      "Python1222 (AI / Research)": [
+    {
+      "name": "HouseGAN-Lab",
+      "desc": "住宅平面图生成实验，比较 GAN / Diffusion / GNN 模型。",
+      "link": "https://github.com/maiyihe/housegan-lab"
+    }
+  ]  
+}
