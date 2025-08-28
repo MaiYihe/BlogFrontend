@@ -8,3 +8,6 @@ https://hub.docker.com/r/maiyihe/blog_frontend
 
 ## 实现案例
 https://blog.maiyihe.xyz
+
+## docker-compose.yml 与默认配置文件
+https://github.com/MaiYihe/BlogConfig
