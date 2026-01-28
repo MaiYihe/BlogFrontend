@@ -28,7 +28,6 @@ import SideBarTreeNodes from './SideBarTreeNodes.vue'
 import { TreeNode } from '@/utils/treeNodes';
 import { updateVisibility } from '@/api/admin/treeNodeApi'
 import {
-  safeClone,
   confirmVisibilityUpdate
 } from '@/utils/treeNodesVisibility'
 

@@ -65,10 +65,38 @@ const toggleSidebar = () => { showSidebar.value = !showSidebar.value }
 // const expandedMap = reactive<Record<string, boolean>>({})
 
 /** 侧栏宽度（驱动 --a） */
-const sidebarWidth = ref(300)
+const INITIAL_SIDEBAR_WIDTH = 300
+const sidebarWidth = ref(INITIAL_SIDEBAR_WIDTH)
 const rowRef = ref<HTMLElement | null>(null)
-const MIN_W = 300
+let MIN_W = INITIAL_SIDEBAR_WIDTH
 const MAX_W = 2400
+
+function adjustSidebar() {
+  const width = window.innerWidth
+  const height = window.innerHeight
+  const isVertical = height > width
+  if (width < INITIAL_SIDEBAR_WIDTH * 2.5) {
+    if (isVertical) {
+      sidebarWidth.value = width * 0.2
+      MIN_W = width * 0.1
+    } else {
+      sidebarWidth.value = width * 0.25
+      MIN_W = width * 0.1
+    }
+  } else {
+    sidebarWidth.value = INITIAL_SIDEBAR_WIDTH
+    MIN_W = INITIAL_SIDEBAR_WIDTH
+  }
+}
+
+// 防抖函数实现
+function debounce(func: Function, wait: number) {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  return function (...args: any[]) {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), wait);
+  };
+}
 
 function onResizing(clientX: number) {
   const row = rowRef.value
@@ -79,6 +107,14 @@ function onResizing(clientX: number) {
   sidebarWidth.value = w
   if (!showSidebar.value) showSidebar.value = true
 }
+
+// 使用防抖来优化resize事件
+const debouncedAdjustSidebar = debounce(adjustSidebar, 200);
+// 在窗口大小变化时调整侧边栏宽度
+window.addEventListener('resize', debouncedAdjustSidebar);
+// 初始调用一次以设置合适的宽度
+adjustSidebar();
+
 
 const isDragging = ref(false)
 
@@ -142,14 +178,17 @@ onMounted(async () => {
       roContent.observe(contentRef.value)
     }
   }
-  // 5) 监听窗口变化
+  // 5) 监听窗口变化  
   window.addEventListener('resize', updateNeedsScroll)
+  window.addEventListener('resize', adjustSidebar)
+  
 })
 
 onBeforeUnmount(() => {
   roBox?.disconnect(); roBox = null
   roContent?.disconnect(); roContent = null
   window.removeEventListener('resize', updateNeedsScroll)
+  window.addEventListener('resize', adjustSidebar)
 })
 
 /** 路由变化后，等内容渲染完成再测量（确保异步内容、图片等也纳入） */
