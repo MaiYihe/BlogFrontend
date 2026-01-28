@@ -16,8 +16,9 @@ import sup from 'markdown-it-sup'             // ^上标^
 import mdTable from 'markdown-it-multimd-table' // 表格插件
 import katexPlugin from 'markdown-it-katex'   // 数学公式（$...$、$$...$$）
 
-import { wikilinkImagesToSigned } from '@/utils/wikilinkToSigned'
+import { mdImagesToSigned } from '@/utils/mdImagesToSigned'
 import { vTableWrap } from '@/utils/markdownTableWrap'
+import axios from 'axios'
 
 // 传入纯文本 Markdown
 const props = defineProps<{ content: string }>()
@@ -88,8 +89,9 @@ function compatPreprocess(src: string): string {
 // —— 异步渲染流程 —— //
 async function renderNow(raw: string) {
   const pre = compatPreprocess(raw ?? '')
-  // 先把 ![[...]] 变成带预签名 URL 的标准 Markdown 图片
-  const replaced = await wikilinkImagesToSigned(pre)
+  // 先把 md 图片而是变成带预签名 URL 的标准 Markdown 图片
+  const replaced = await mdImagesToSigned(pre)
+
   // 再交给 markdown-it 渲染
   html.value = md.render(replaced)
 }
