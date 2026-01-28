@@ -1,4 +1,6 @@
 # 个人博客 Vue 前端项目
+对于文章内容中携带 `![]` 格式的图片，会异步解析转化为标准 md 图片描述格式
+
 
 ## 一、DockerHub
 https://hub.docker.com/r/maiyihe/blog_frontend
