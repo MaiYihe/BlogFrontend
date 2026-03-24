@@ -1,5 +1,5 @@
 <template>
-  <div class="tree-root">
+  <div class="tree-root" ref="rootEl">
     <SideBarTreeNode
       v-for="(node, idx) in treeData"
       :key="nodeKey(node, idx)"
@@ -13,7 +13,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed, toRaw, nextTick, watch, ref } from 'vue'
+import { onMounted, onBeforeUnmount, computed, toRaw, nextTick, watch, ref } from 'vue'
+import { useRoute } from 'vue-router'
 import SideBarTreeNode from './SideBarTreeNode.vue'
 import { fetchNoteTree } from '@/api/treeNodeApi'
 import {
@@ -43,6 +44,8 @@ const emit = defineEmits<{
 // ------- Pinia -------
 const store = useSidebarTreeStore()
 const { nodesForView } = storeToRefs(store)
+const route = useRoute()
+const rootEl = ref<HTMLElement | null>(null)
 
 // ------- 父组件传入（受控） -------
 const props = defineProps<{
@@ -234,6 +237,82 @@ defineExpose({
 // ------- node key（稳定） -------
 const nodeKey = (n: TreeNode, i: number) =>
   n.id ?? n.currentPath ?? makeNodeKey(n) ?? `vk:${i}:${n.name}`
+
+// ------- 展开到当前文章 -------
+function normalizePath(p?: string | null): string {
+  if (!p) return ''
+  const t = String(p).trim()
+  return t.replace(/^data\//, '')
+}
+
+function keyOf(n: TreeNode): string {
+  return n.id ?? n.currentPath ?? makeNodeKey(n) ?? `k:${n.name}`
+}
+
+function findPathToNode(nodes: TreeNode[], target: string): TreeNode[] | null {
+  for (const n of nodes) {
+    if (!n.folder && normalizePath(n.currentPath) === target) return [n]
+    if (n.children?.length) {
+      const res = findPathToNode(n.children, target)
+      if (res) return [n, ...res]
+    }
+  }
+  return null
+}
+
+function expandToPath(rawPath: string) {
+  const target = normalizePath(rawPath)
+  if (!target) return
+  const pathNodes = findPathToNode(treeData.value, target)
+  if (!pathNodes?.length) return
+  for (const n of pathNodes) {
+    if (n.folder) store.setExpanded(keyOf(n), true)
+  }
+}
+
+async function scrollActiveIntoView() {
+  await nextTick()
+  const root = rootEl.value
+  if (!root) return
+  const active = root.querySelector('.node-row.is-active-row') as HTMLElement | null
+  if (!active) return
+  const container = root.closest('.scroll-area') as HTMLElement | null
+  if (!container) {
+    active.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    return
+  }
+  const cRect = container.getBoundingClientRect()
+  const eRect = active.getBoundingClientRect()
+  const delta = (eRect.top - cRect.top) - (container.clientHeight / 2 - eRect.height / 2)
+  container.scrollTo({ top: container.scrollTop + delta, behavior: 'smooth' })
+}
+
+const currentNotePath = computed(() => {
+  const q = route.query.notePath
+  if (typeof q === 'string' && q.trim()) return q.trim()
+  const p = route.params.notePath
+  if (typeof p === 'string' && p.trim()) return p.trim()
+  return ''
+})
+
+watch([currentNotePath, treeData], async ([np]) => {
+  if (!np) return
+  expandToPath(np)
+}, { immediate: true })
+
+function onFocusActive() {
+  const np = currentNotePath.value
+  if (np) expandToPath(np)
+  void scrollActiveIntoView()
+}
+
+onMounted(() => {
+  window.addEventListener('sidebar-focus-active', onFocusActive as EventListener)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('sidebar-focus-active', onFocusActive as EventListener)
+})
 </script>
 
 

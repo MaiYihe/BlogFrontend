@@ -11,6 +11,11 @@
         <!-- 当用户点击按钮时，当前组件（比如 HeaderNavbar.vue）主动向它的“父组件”触发一个名为 'toggle-sidebar' 的自定义事件 -->
 
         <button class="btn sidebar-toggle" @click="emit('toggle-sidebar')">☰</button>
+        <el-tooltip content="返回上一次阅读" placement="bottom" :offset="6">
+          <button class="btn nav-back" :disabled="!canGoBack" @click="goBackNote" aria-label="Back to last note">
+            <img :src="backIcon" alt="" class="nav-back-icon" />
+          </button>
+        </el-tooltip>
       </div>
 
       <!-- 折叠按钮（移动端） -->
@@ -23,11 +28,11 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
           <li class="nav-item">
-            <router-link class="nav-link" to="/">Home</router-link>
+            <a href="#" class="nav-link" @click.prevent="goHome">Home</a>
           </li>
 
           <li class="nav-item">
-            <router-link class="nav-link" to="/projects">Projects</router-link>
+            <a href="#" class="nav-link" @click.prevent="goProjects">Projects</a>
           </li>
 
           <li class="nav-item">
@@ -81,6 +86,21 @@
               <li>
                 <el-tooltip v-if="!isAuthed" content="访客没有权限，请联系管理员" placement="left" effect="dark">
                   <button class="dropdown-item disabled-item">
+                    RagScan
+                  </button>
+                </el-tooltip>
+                <button v-else class="dropdown-item" @click="goRagScan">
+                  RagScan
+                </button>
+              </li>
+
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+
+              <li>
+                <el-tooltip v-if="!isAuthed" content="访客没有权限，请联系管理员" placement="left" effect="dark">
+                  <button class="dropdown-item disabled-item">
                     FiguresScan
                   </button>
                 </el-tooltip>
@@ -121,20 +141,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import ContactCard from '../components/ContactCard.vue'
-import { useRouter } from 'vue-router'
-import { contentScan } from '@/api/admin/contentApi'
+import { useRouter, useRoute } from 'vue-router'
+import { contentScan, ragScan } from '@/api/admin/contentApi'
 import { scanFiguresToOSS } from '@/api/admin/ossApi'
 import { useAuthStore } from '@/stores/auth'
 import { doLogout } from '@/utils/auth'
+import { useUltraLightLoading } from '@/composables/useUltraLightLoading'
+import { useSidebarTreeStore } from '@/stores/sideBarTree'
+import backIcon from '@/assets/icons/back.svg'
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
+const treeStore = useSidebarTreeStore()
+const { start: startNavLoading, stop: stopNavLoading } = useUltraLightLoading(300, '加载中...')
 
 // 只要 store 里状态初始化过，就是“已登录”
 const isLogined = computed(() => auth.isAuthed) // guest 或 jwt 都算
 const isAuthed = computed(() => auth.mode === 'jwt') // 仅 jwt 算 Admin
+const canGoBack = computed(() => treeStore.history.length > 0 || route.path !== '/')
 
 
 // 声明自定义事件
@@ -149,8 +176,64 @@ onMounted(() => window.addEventListener('keydown', onEsc))
 onBeforeUnmount(() => window.removeEventListener('keydown', onEsc))
 
 
-function goEditCategory() {
-  router.push('/EditCategory')
+async function goEditCategory() {
+  startNavLoading()
+  try {
+    await router.push('/EditCategory')
+  } finally {
+    stopNavLoading()
+  }
+}
+
+async function goProjects() {
+  startNavLoading()
+  try {
+    await router.push('/Projects')
+  } finally {
+    stopNavLoading()
+  }
+}
+
+async function goHome() {
+  if (route.path === '/') {
+    window.dispatchEvent(new CustomEvent('home-reset'))
+    return
+  }
+  startNavLoading()
+  try {
+    await router.push('/')
+  } finally {
+    stopNavLoading()
+  }
+}
+
+async function goBackNote() {
+  let item = treeStore.popHistory()
+  if (route.path.startsWith('/search')) {
+    while (item && item.type === 'search') {
+      item = treeStore.popHistory()
+    }
+  }
+  if (!item) {
+    if (route.path !== '/') {
+      await router.push('/')
+    }
+    return
+  }
+  if (item.type === 'note') {
+    if (router.currentRoute.value?.name === 'content') {
+      treeStore.markSkipNextHistoryPush()
+    }
+    treeStore.applyExpandedMap(item.expandedMap)
+    await router.push({ name: 'content', query: { notePath: item.notePath } })
+    await nextTick()
+    window.dispatchEvent(new CustomEvent('sidebar-focus-active'))
+    return
+  }
+  if (item.type === 'search') {
+    treeStore.applyExpandedMap(item.expandedMap)
+    await router.push('/search')
+  }
 }
 
 
@@ -160,6 +243,19 @@ const showScanDialog = ref(false)
 async function goContentScan() {
   try {
     const res = await contentScan()
+    contentScanResult.value = res.data
+  } catch (err) {
+    console.error('扫描失败：', err)
+    contentScanResult.value = '扫描失败，请稍后重试'
+  } finally {
+    // ✅ 无论成功失败，都弹窗显示结果
+    showScanDialog.value = true
+  }
+}
+
+async function goRagScan() {
+  try {
+    const res = await ragScan()
     contentScanResult.value = res.data
   } catch (err) {
     console.error('扫描失败：', err)
@@ -216,6 +312,7 @@ const handleLogout = async () => {
   top: 0;
   left: 0;
   right: 0;
+  background-color: #222 !important;
 }
 
 /* ===导航栏左侧字体 */
@@ -242,8 +339,13 @@ const handleLogout = async () => {
   background-color: transparent;
   color: white;
   border: none;
-  padding: 0.5rem 0.75rem;
+  padding: 0;
+  width: 38px;
+  height: 38px;
   font-size: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 0.5rem;
   transition: background-color 0.4s ease-out;
 }
@@ -253,6 +355,36 @@ const handleLogout = async () => {
   /* 悬停时字体反色 */
   background-color: white;
   /* 悬停时背景反色 */
+}
+
+/* 返回上一次文章 */
+.nav-back {
+  background-color: transparent;
+  border: none;
+  padding: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.3s ease, opacity 0.2s ease;
+}
+
+.nav-back:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.nav-back:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.nav-back-icon {
+  width: 22px;
+  height: 22px;
+  opacity: 0.9;
+  transform: translateY(-3.5px);
 }
 
 .navbar-nav .nav-link {

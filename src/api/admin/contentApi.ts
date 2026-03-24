@@ -4,3 +4,8 @@ export function contentScan() {
   // 给它 10 分钟响应
   return request.post('/admin/content/scan', null, { timeout: 600_000 })
 }
+
+/** 触发 RAG 扫描 */
+export function ragScan() {
+  return request.post('/admin/rag/run')
+}

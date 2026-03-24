@@ -2,7 +2,7 @@
   <div class="sidebar-footer">
 
     <div class="left-box">
-      <el-dropdown @command="onChoose" trigger="click" placement="top-start">
+    <el-dropdown @command="onChoose" trigger="click" placement="top-start">
         <!-- 按钮里显示“当前选项对应的字母” -->
         <button class="avatar">{{ avatarLetter }}</button>
         <template #dropdown>
@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import settingsIcon from '@/assets/icons/settings.svg'
 import uploadIcon from '@/assets/icons/upload-cloud-line.svg'
 
@@ -49,8 +49,10 @@ const OPTION_MAP = {
 } as const
 type Command = keyof typeof OPTION_MAP
 
+const props = defineProps<{ modelValue: boolean, open: boolean, mode?: Command }>()
+
 // 本地状态：当前选项
-const currentCommand = ref<Command>('group-category')
+const currentCommand = ref<Command>(props.mode ?? 'alpha')
 
 // emits：两个事件都声明
 const emit = defineEmits<{
@@ -73,7 +75,6 @@ const avatarLetter = computed(() => OPTION_MAP[currentCommand.value].letter)
 const label = currentLabel
 
 // v-model 处理
-const props = defineProps<{ modelValue: boolean, open: boolean}>()
 const isUpload = computed({
   get: () => props.modelValue,
   set: (v: boolean) => emit('update:modelValue', v),
@@ -90,6 +91,14 @@ const showConfirm = computed({
   get: () => props.open,
   set: v => emit('update:open', v)
 })
+
+watch(
+  () => props.mode,
+  (val) => {
+    if (!val) return
+    currentCommand.value = val
+  }
+)
 
 function onCancel() {
   // ✅ 本地处理

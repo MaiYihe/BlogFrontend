@@ -9,7 +9,7 @@
     </div>
 
     <!-- 悬浮底部固定区域 -->
-    <SideBarFooter v-model="isMarkingA" @change-mode="handleChangeMode" v-model:open="showUploadConfirm"
+    <SideBarFooter v-model="isMarkingA" :mode="mode" @change-mode="handleChangeMode" v-model:open="showUploadConfirm"
       @confirm="handleConfirm" @cancel="handleCancel" />
 
     <!-- 覆盖 SideBar（A的区域） 的黑色蒙版 -->
@@ -23,6 +23,7 @@
 <script setup lang="ts">
 import { ElMessage } from 'element-plus'
 import { ref, computed, watch, toRaw } from 'vue'
+import { useRoute } from 'vue-router'
 import SideBarFooter from './SideBarFooter.vue'
 import SideBarTreeNodes from './SideBarTreeNodes.vue'
 import { TreeNode } from '@/utils/treeNodes';
@@ -53,8 +54,17 @@ const props = withDefaults(defineProps<{
 })
 
 type Mode = 'group-category' | 'alpha' | 'popular'
-const mode = ref<Mode>('group-category')   // 只是默认值，用户点了会改
+const mode = ref<Mode>('alpha')   // 默认 A-Z
 const handleChangeMode = (m: Mode) => { mode.value = m }
+const route = useRoute()
+watch(
+  () => route.path,
+  (p) => {
+    if (p === '/') {
+      mode.value = 'alpha'
+    }
+  }
+)
 
 
 

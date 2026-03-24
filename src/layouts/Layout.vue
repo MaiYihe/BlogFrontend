@@ -1,58 +1,74 @@
 <template>
-  <div :class="route.path === '/' ? 'layoutHome' : 'layout'">
-    <!-- 顶部导航栏 -->
-    <!-- toggleSidebar 是按钮绑定的事件，控制 showSidebar 的值 -->
-    <HeaderNavbar @toggle-sidebar="toggleSidebar" />
+  <div
+    :class="[route.path === '/' ? 'layoutHome' : 'layout', showLayoutBg ? 'layout-with-bg' : '']"
+    :style="{ '--sidebar-w': sidebarWidth + 'px', '--topbar-h': '48px' }"
+  >
+    <div v-if="showLayoutBg" class="layout-bg" aria-hidden="true"></div>
 
-    <div class="row" ref="rowRef" :class="{ collapsed: !showSidebar, dragging: isDragging }"
-      :style="{ '--a': sidebarWidth + 'px', '--gap': '0px', '--topbar-h': '48px' }">
-      <!-- A：侧边栏外层仅负责“占位宽度 + 裁切” -->
-      <div class="A sidebar" @transitionend="onATransitionEnd">
-        <!-- A 内部真正滑走的内容：就是你的 Sidebar 组件 -->
-        <Sidebar v-model:isMarkingA="isMarkingA" />
-        <!-- 拖动条子组件 -->
-        <SideBarResizer class="resizer" @drag-start="isDragging = true" @drag-end="isDragging = false"
-          @resizing="onResizing" />
-      </div>
+    <div class="layout-content">
+      <!-- 顶部导航栏 -->
+      <!-- toggleSidebar 是按钮绑定的事件，控制 showSidebar 的值 -->
+      <HeaderNavbar @toggle-sidebar="toggleSidebar" />
 
-      <!-- 开启蒙版时候的圆形按钮 -->
-      <div v-if="isMarkingA" class="close-btn-wrap">
-        <CloseCircleButton v-model="isMarkingA" @close="toggleSidebar" />
-      </div>
-
-
-      <!-- B：主内容区域 -->
-      <main class="B" ref="box" @scroll="onScroll">
-        <div class="X" ref="contentRef">
-          <!-- 路由占位符。Vue Router 会根据当前 URL 匹配到的路由组件，自动在 <router-view> 这个位置渲染出来 -->
-          <router-view/>
+      <div class="row" ref="rowRef" :class="{ collapsed: !showSidebar, dragging: isDragging }"
+        :style="{ '--a': sidebarWidth + 'px', '--gap': '0px', '--topbar-h': '48px' }">
+        <!-- A：侧边栏外层仅负责“占位宽度 + 裁切” -->
+        <div class="A sidebar" @transitionend="onATransitionEnd">
+          <!-- A 内部真正滑走的内容：就是你的 Sidebar 组件 -->
+          <Sidebar v-model:isMarkingA="isMarkingA" />
+          <!-- 拖动条子组件 -->
+          <SideBarResizer class="resizer" @drag-start="isDragging = true" @drag-end="isDragging = false"
+            @resizing="onResizing" />
         </div>
 
-        <!-- B区域页面右下角的圆形按钮 -->
-        <!-- 🚫 只有不在根目录时才显示,仅当需要滚动时显示 -->
-        <LocateToTop v-if="route.path !== '/' && needsScroll" class="locate-btn" :at-bottom="isAtBottom"
-          @click="toTop" />
+        <!-- 开启蒙版时候的圆形按钮 -->
+        <div v-if="isMarkingA" class="close-btn-wrap">
+          <CloseCircleButton v-model="isMarkingA" @close="toggleSidebar" />
+        </div>
 
-        <ViewCount v-if="route.path !== '/'" />
-      </main>
+
+        <!-- B：主内容区域 -->
+        <main class="B" ref="box" @scroll="onScroll">
+          <div class="X" ref="contentRef">
+            <!-- 路由占位符。Vue Router 会根据当前 URL 匹配到的路由组件，自动在 <router-view> 这个位置渲染出来 -->
+            <router-view/>
+          </div>
+
+          <!-- B区域页面右下角的圆形按钮 -->
+          <!-- 🚫 只有不在根目录时才显示,仅当需要滚动时显示 -->
+          <LocateToTop v-if="route.path !== '/' && route.path !== '/search' && needsScroll" class="locate-btn" :at-bottom="isAtBottom"
+            @click="toTop" />
+
+          <SearchFab
+            v-if="showSearchFab"
+            :bottom="searchFabBottom"
+            @click="goSearchPage"
+          />
+
+          <ViewCount v-if="route.path !== '/'" />
+        </main>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted, onBeforeUnmount, nextTick, watch, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 import SideBarResizer from '../components/SideBarResizer.vue'
 import Sidebar from '../components/SideBar.vue'
 import HeaderNavbar from '../components/HeaderNavbar.vue'
 import LocateToTop from '../components/LocateToTop.vue'
+import SearchFab from '@/components/SearchFab.vue'
 import ViewCount from '../components/ViewCount.vue'
 import CloseCircleButton from '@/components/CloseCircleButton.vue'
 import { useSidebarTreeStore } from '@/stores/sideBarTree'
 import { fetchNoteTree } from '@/api/treeNodeApi'
 
 const route = useRoute()
+const router = useRouter()
+const showLayoutBg = computed(() => route.path === '/' || route.path === '/search')
 
 const isMarkingA = ref(false)
 const showCloseBtn = ref(false)     // UI状态：是否渲染按钮
@@ -153,6 +169,13 @@ const toTop = () => {
   }
 }
 
+const showSearchFab = computed(() => route.path !== '/' && route.path !== '/search')
+const searchFabBottom = computed(() => (needsScroll.value ? 84 : 20))
+
+function goSearchPage() {
+  router.push({ path: '/search', query: { open: '1' } })
+}
+
 
 /** 观察容器/内容尺寸变化，自动更新是否需滚动 */
 let roBox: ResizeObserver | null = null
@@ -161,6 +184,7 @@ let roContent: ResizeObserver | null = null
 
 const treeStore = useSidebarTreeStore()
 onMounted(async () => {
+  treeStore.hydrateExpanded()
   // 1) 初始化（只在首次进入时拉树）
   await treeStore.initIfEmpty(fetchNoteTree)
   // 2) 等一帧，确保 DOM/列表渲染完成
@@ -197,6 +221,13 @@ watch(() => route.fullPath, async () => {
   updateNeedsScroll()
 })
 
+watch(() => route.path, (p) => {
+  if (p === '/') {
+    treeStore.resetExpanded()
+    treeStore.clearPersistedExpanded()
+  }
+})
+
 
 // 监听 A 抽屉效果是否结束
 function onATransitionEnd(e: TransitionEvent) {
@@ -225,6 +256,7 @@ watch(isMarkingA, (val) => {
     repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.04) 0 2px, transparent 2px 8px),
     linear-gradient(-45deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.25));
   background-blend-mode: soft-light;
+  position: relative;
 }
 
 .layout {
@@ -233,7 +265,45 @@ watch(isMarkingA, (val) => {
   height: 100vh;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
+
+.layout-with-bg {
+  background: transparent !important;
+  background-image: none !important;
+}
+
+.layout-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.layout-bg {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 1;
+  --content-w: calc(100vw - var(--sidebar-w, 0px));
+  --card-w: min(900px, var(--content-w));
+  --margin-w: calc((var(--content-w) - var(--card-w)) / 2);
+  --card-left: calc(var(--sidebar-w, 0px) + (var(--content-w) - var(--card-w)) / 2);
+  --card-right: calc(var(--card-left) + var(--card-w));
+  background-image:
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.04) 0 2px, transparent 2px 8px),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.25));
+  background-repeat: repeat, no-repeat;
+  background-position: 0 0, 0 0;
+  background-size: auto, auto;
+  background-color: #333333;
+  background-blend-mode: soft-light;
+}
+
 
 
 /* --- 变量：--a 控制侧栏宽；--pad 控制 B 的让位；--ax 控制 A 的位移 --- */
@@ -310,6 +380,7 @@ watch(isMarkingA, (val) => {
   right: 36px;
   bottom: 20px;
 }
+
 
 .X {
   height: auto;

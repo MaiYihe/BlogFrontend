@@ -1,6 +1,6 @@
 <template>
   <div class="tree-node">
-    <div class="node-row">
+  <div class="node-row" :class="{ 'is-active-row': isActive, 'is-disabled': disabled }">
       <!-- 文件夹行 -->
       <template v-if="node.folder === true">
         <el-tooltip
@@ -120,6 +120,7 @@
 
 <script setup lang="ts">
 import { computed } from "vue";
+import { useRoute } from "vue-router";
 import SideBarTreeNode from "./SideBarTreeNode.vue";
 import visibilityOnIcon from "@/assets/icons/visibility_on.svg";
 import visibilityOffIcon from "@/assets/icons/visibility_off.svg";
@@ -138,12 +139,29 @@ const emit = defineEmits<{
   (e: "toggle-visible", payload: { key: string; nextVisible: boolean }): void;
 }>();
 
+const route = useRoute();
+
 // 统一生成稳定 key
 const keyOf = (n: TreeNode): string =>
   n.id ?? n.currentPath ?? `virtual:${n.name}`;
 
 // 是否禁用（不可见即禁用）
 const disabled = computed(() => props.node.visible === false);
+
+// 当前路由对应的高亮
+function normalizePath(s?: string | null): string {
+  if (!s) return "";
+  const t = String(s).trim();
+  return t.replace(/^data\//, "");
+}
+
+const isActive = computed(() => {
+  if (props.node.folder) return false;
+  const q = route.query.notePath;
+  const routePath = typeof q === "string" ? q : "";
+  const nodePath = props.node.currentPath ?? "";
+  return normalizePath(routePath) === normalizePath(nodePath);
+});
 
 // 展开态（通过父回调/Pinia 查询）
 const expanded = computed(() => props.isExpanded(keyOf(props.node)));
@@ -307,21 +325,36 @@ const parsedName = computed(() => {
   /* 让这一行成为定位参照 */
   /* 如果行高不固定，建议给个最小高度 */
   min-height: 24px;
+  user-select: none;
+  -webkit-user-select: none;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.node-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .lock-icon {
-  position: absolute;
-  right: 10px;
-  top: 60%;
-  transform: translateY(-50%);
-  /* pointer-events: none;   ← 删除这行 */
+  position: relative;
+  margin-left: auto;
+  padding-right: 0px;
   pointer-events: auto;
-  /* ← 改为可交互 */
-  z-index: 1000;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
 }
 
 .node-children {
   margin-left: 1rem;
+  --indent: calc(var(--indent, 0px) + 1rem);
 }
 
 .link-like {
@@ -336,6 +369,8 @@ const parsedName = computed(() => {
   /* 包含内边距在宽度内 */
   color: inherit;
   text-decoration: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* ② 仅非禁用时允许 hover 变色 —— 用它替代上面的两段 */
@@ -347,6 +382,36 @@ const parsedName = computed(() => {
 .link-like:not(.disabled):hover {
   text-decoration: none;
   color: #f5a742;
+}
+
+/* 当前选中的文章高亮（整条覆盖，保留缩进） */
+.node-row.is-active-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(-1 * var(--indent, 0px));
+  right: 0;
+  background-color: rgba(255, 184, 107, 0.18);
+  border-radius: 6px;
+  z-index: 0;
+}
+
+.node-row.is-active-row > * {
+  position: relative;
+  z-index: 1;
+}
+
+.node-row.is-active-row .node-label {
+  color: #ffcf8b;
+}
+
+.node-row.is-active-row.is-disabled::before {
+  background-color: rgba(255, 184, 107, 0.12);
+}
+
+.node-row.is-active-row.is-disabled .node-label {
+  color: #d3b38a;
 }
 
 /* ③ 禁用态基础样式（保持灰色） */
@@ -506,4 +571,3 @@ const parsedName = computed(() => {
   color: rgba(255, 184, 107, 0.45);
 }
 </style>
-

@@ -111,7 +111,7 @@ watch(
   color: #e6edf3;
   padding: 1em;
   border-radius: 6px;
-  line-height: 1.6;
+  line-height: 1.5;
   font-size: 14px;
   word-wrap: break-word;
   overflow-wrap: anywhere;
@@ -195,18 +195,41 @@ watch(
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-  margin: 1.2em 0 em;
+  margin: 1.6em 0 0.7em;
   font-weight: 700;
   line-height: 1.1;
   text-decoration: none;
 }
-.markdown-body h1 { color: var(--h1-color); }
-.markdown-body h2 { color: var(--h2-color); }
-.markdown-body h3 { color: var(--h3-color); }
-.markdown-body h4 { color: var(--h4-color); }
-.markdown-body h5 { color: var(--h5-color); }
-.markdown-body h6 { color: var(--h6-color); }
+.markdown-body h1 { color: var(--h1-color); font-size: 1.8em; }
+.markdown-body h2 { color: var(--h2-color); font-size: 1.55em; }
+.markdown-body h3 { color: var(--h3-color); font-size: 1.35em; }
+.markdown-body h4 { color: var(--h4-color); font-size: 1.2em; }
+.markdown-body h5 { color: var(--h5-color); font-size: 1.05em; }
+.markdown-body h6 { color: var(--h6-color); font-size: 0.95em; }
 
+/* 正文与列表更紧凑，标题区仍保持更宽松的节奏 */
+.markdown-body p {
+  margin: 0.55em 0;
+}
+.markdown-body ul,
+.markdown-body ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+.markdown-body li {
+  margin: 0.25em 0;
+  line-height: 1.45;
+}
+
+/* 修复 Markdown 列表：li > p 带默认 margin 导致换行/间距过大 */
+.markdown-body li p {
+  margin: 0;
+}
+
+/* 防止父级 white-space 影响列表排版 */
+.markdown-body {
+  white-space: normal;
+}
 
 
 /* Firefox：细滚动条 + 自定义颜色（thumb/track） */
@@ -323,6 +346,40 @@ watch(
   border-radius: 8px;
   border: 2px solid transparent;
   background-clip: padding-box;
+}
+
+/* === Code Block Refresh (nicer look) === */
+.markdown-body pre {
+  background: linear-gradient(180deg, rgba(24, 27, 34, 0.98), rgba(17, 19, 24, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow:
+    0 8px 18px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  overflow: auto;
+}
+
+.markdown-body pre code {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: #e6edf3;
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.markdown-body code {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f3f4f6;
+  padding: 0.12em 0.4em;
+  border-radius: 0.45rem;
+}
+
+.markdown-body pre::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 </style>

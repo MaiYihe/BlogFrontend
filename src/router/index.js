@@ -9,6 +9,7 @@ export default createRouter({
       component: () => import('@/layouts/Layout.vue'),
       children: [
         { path: '', name: 'Home', component: () => import('@/views/Home.vue') },
+        { path: 'search', name: 'Search', component: () => import('@/views/Home.vue') },
 
         {
           path: 'content',

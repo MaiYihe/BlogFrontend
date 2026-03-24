@@ -1,6 +1,6 @@
 <!-- src/views/Note.vue -->
 <template>
-  <div class="note-page note-page-scroll">
+  <div class="note-page note-page-scroll" @click="focusActiveInSidebar">
     <PathReader position="top-right" :offsetX="100" :offsetY="10" />   
 
     <div v-if="loading" class="state">正在加载...</div>
@@ -11,14 +11,16 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, onBeforeRouteUpdate, onBeforeRouteLeave } from 'vue-router'
 import { fetchDetailedContent } from '@/api/contentApi'
 import MarkdownRender from '@/components/MarkdownRender.vue'
 import PathReader from '@/components/PathReader.vue'
+import { useSidebarTreeStore } from '@/stores/sideBarTree'
 
 defineOptions({ name: 'Note' })
 
 const route = useRoute()
+const treeStore = useSidebarTreeStore()
 
 const md = ref('')
 const loading = ref(true)
@@ -66,6 +68,31 @@ onMounted(() => fetchContentOnce(notePath.value))
 // 只有当 notePath 真正变化时才重新拉
 watch(notePath, (nv, ov) => {
   if (nv && nv !== ov) fetchContentOnce(nv)
+})
+
+function focusActiveInSidebar() {
+  window.dispatchEvent(new CustomEvent('sidebar-focus-active'))
+}
+
+function extractNotePath(r: any): string {
+  const q = r?.query?.notePath
+  if (typeof q === 'string' && q.trim()) return q.trim()
+  const p = r?.params?.notePath
+  if (typeof p === 'string' && p.trim()) return p.trim()
+  return ''
+}
+
+function recordHistory(fromRoute: any) {
+  const p = extractNotePath(fromRoute)
+  if (p) treeStore.pushNoteHistory(p)
+}
+
+onBeforeRouteUpdate((to, from) => {
+  recordHistory(from)
+})
+
+onBeforeRouteLeave((to, from) => {
+  recordHistory(from)
 })
 </script>
 
